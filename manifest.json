@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "DexScreener Ad Checker",
+  "version": "1.0",
+  "description": "Shows if tokens have paid for DexScreener advertising",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.dexscreener.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://axiom.trade/*",
+        "https://dexscreener.com/*",
+        "https://pump.fun/*",
+        "https://jupiter.ag/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ]
+}

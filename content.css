@@ -1,0 +1,74 @@
+.dex-indicator {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  bottom: auto !important;
+  left: auto !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0px !important;
+  text-transform: uppercase !important;
+  z-index: 2147483647 !important;
+  cursor: grab !important;
+  user-select: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.15s ease !important;
+  min-width: 70px !important;
+  text-align: center !important;
+  margin: 0 !important;
+  transform: translateZ(0) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Keep fixed positioning while allowing absolutely positioned children */
+.dex-indicator.paid,
+.dex-indicator.unpaid {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+}
+
+.dex-indicator:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.dex-indicator:active {
+  cursor: grabbing !important;
+  transform: translateY(0) !important;
+}
+
+.dex-indicator.paid {
+  background: #18181b !important;
+  color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+.dex-indicator.unpaid {
+  background: #18181b !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+.dex-indicator.ready {
+  background: #18181b !important;
+  color: #a855f7 !important;
+  border-color: rgba(168, 85, 247, 0.2) !important;
+}
+
+.dex-indicator.processing {
+  background: #18181b !important;
+  color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.2) !important;
+}
+
+.dex-indicator.indexing {
+  background: #18181b !important;
+  color: #06b6d4 !important;
+  border-color: rgba(6, 182, 212, 0.2) !important;
+}
+
+/* Removed pulsing indicator - cleaner look */
