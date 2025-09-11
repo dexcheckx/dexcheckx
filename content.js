@@ -401,6 +401,7 @@ class AdChecker {
     this.restorePosition();
     
     this.setupDragging(this.indicator);
+    this.setupClickHandler(this.indicator);
     document.body.appendChild(this.indicator);
   }
 
@@ -504,6 +505,66 @@ class AdChecker {
         this.savePosition();
       }
     });
+  }
+
+  setupClickHandler(element) {
+    let mouseDownTime = 0;
+    let mouseDownPos = { x: 0, y: 0 };
+
+    element.addEventListener('mousedown', (e) => {
+      mouseDownTime = Date.now();
+      mouseDownPos = { x: e.clientX, y: e.clientY };
+    });
+
+    element.addEventListener('click', (e) => {
+      // Only trigger click if it wasn't a drag operation
+      const timeDiff = Date.now() - mouseDownTime;
+      const posDiff = Math.sqrt(
+        Math.pow(e.clientX - mouseDownPos.x, 2) + 
+        Math.pow(e.clientY - mouseDownPos.y, 2)
+      );
+      
+      // If mouse moved less than 5px and was clicked quickly (not dragged)
+      if (posDiff < 5 && timeDiff < 300 && !this.isDragging) {
+        console.log('Manual update check triggered by click');
+        this.performManualUpdate();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  }
+
+  async performManualUpdate() {
+    try {
+      // Show updating indicator
+      const originalText = this.indicator?.textContent || '';
+      const originalStatus = this.indicator?.className || '';
+      
+      if (this.indicator) {
+        this.indicator.textContent = 'UPDATING';
+        this.indicator.className = 'dex-indicator updating';
+      }
+
+      // Stop any current monitoring
+      this.stopMonitoring();
+      this.stopIndexingCheck();
+
+      console.log('Performing manual update check...');
+
+      // Re-run the page check logic
+      await this.checkPage();
+      
+      console.log('Manual update check completed');
+
+    } catch (error) {
+      console.error('Error during manual update:', error);
+      
+      // Restore original state on error
+      if (this.indicator) {
+        this.indicator.textContent = originalText;
+        this.indicator.className = originalStatus;
+      }
+    }
   }
 }
 

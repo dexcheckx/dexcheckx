@@ -71,4 +71,22 @@
   border-color: rgba(6, 182, 212, 0.2) !important;
 }
 
+.dex-indicator.updating {
+  background: #18181b !important;
+  color: #8b5cf6 !important;
+  border-color: rgba(139, 92, 246, 0.2) !important;
+  animation: pulse-updating 1.5s ease-in-out infinite !important;
+}
+
+@keyframes pulse-updating {
+  0%, 100% {
+    opacity: 0.8 !important;
+    transform: scale(1) !important;
+  }
+  50% {
+    opacity: 1 !important;
+    transform: scale(1.02) !important;
+  }
+}
+
 /* Removed pulsing indicator - cleaner look */
