@@ -4,6 +4,7 @@ class PopupManager {
     this.defaultSettings = {
       extensionEnabled: true,
       showIndicator: true,
+      showTwitterInfo: true,
       monitorInterval: 5,
       indexingInterval: 10
     };
@@ -38,6 +39,7 @@ class PopupManager {
       // Update UI elements with validation
       const extensionEnabledEl = document.getElementById('extension-enabled');
       const showIndicatorEl = document.getElementById('show-indicator');
+      const showTwitterInfoEl = document.getElementById('show-twitter-info');
       const monitorIntervalEl = document.getElementById('monitor-interval');
       const indexingIntervalEl = document.getElementById('indexing-interval');
       
@@ -49,6 +51,11 @@ class PopupManager {
       if (showIndicatorEl) {
         showIndicatorEl.checked = result.showIndicator !== false; // default true
         console.log('Set show-indicator to:', showIndicatorEl.checked);
+      }
+      
+      if (showTwitterInfoEl) {
+        showTwitterInfoEl.checked = result.showTwitterInfo !== false; // default true
+        console.log('Set show-twitter-info to:', showTwitterInfoEl.checked);
       }
       
       if (monitorIntervalEl) {
@@ -80,6 +87,7 @@ class PopupManager {
       const settings = {
         extensionEnabled: document.getElementById('extension-enabled')?.checked ?? true,
         showIndicator: document.getElementById('show-indicator')?.checked ?? true,
+        showTwitterInfo: document.getElementById('show-twitter-info')?.checked ?? true,
         monitorInterval: parseInt(document.getElementById('monitor-interval')?.value || '5'),
         indexingInterval: parseInt(document.getElementById('indexing-interval')?.value || '10')
       };
@@ -105,7 +113,8 @@ class PopupManager {
     // Settings change handlers
     const settingElements = [
       'extension-enabled',
-      'show-indicator', 
+      'show-indicator',
+      'show-twitter-info',
       'monitor-interval',
       'indexing-interval'
     ];
@@ -367,6 +376,7 @@ Status Indicators:
 Settings:
 • Extension Enabled - Turn monitoring on/off
 • Show Indicator - Hide/show floating indicator
+• Show Twitter Info - Display Twitter usernames on axiom.trade
 • Monitor Interval - How often to check API (1-60 seconds)
 • Indexing Interval - Check frequency for new pairs (5-120 seconds)
 

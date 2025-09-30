@@ -16,6 +16,7 @@ class AdChecker {
     this.settings = {
       extensionEnabled: true,
       showIndicator: true,
+      showTwitterInfo: true,
       monitorInterval: 5,
       indexingInterval: 10
     };
@@ -110,10 +111,30 @@ class AdChecker {
       console.log('Extension disabled, stopping all monitoring');
       this.stopMonitoring();
       this.stopIndexingCheck();
+      this.stopTwitterInfoExtraction();
       if (this.indicator) {
         this.hideIndicator();
       }
       return;
+    }
+    
+    // Handle Twitter info enabled/disabled
+    if (!this.settings.showTwitterInfo) {
+      console.log('Twitter info disabled, stopping Twitter extraction');
+      this.stopTwitterInfoExtraction();
+      // Force immediate cleanup with a slight delay to ensure DOM is ready
+      setTimeout(() => {
+        console.log('Performing forced cleanup of Twitter elements');
+        this.cleanupTwitterInfoElements();
+      }, 100);
+    } else if (this.settings.showTwitterInfo) {
+      console.log('Twitter info enabled, restarting Twitter extraction');
+      // Stop any existing extraction first to clean up
+      this.stopTwitterInfoExtraction();
+      // Small delay to ensure cleanup is complete, then start fresh
+      setTimeout(() => {
+        this.initTwitterInfoExtraction();
+      }, 150);
     }
     
     console.log('Extension enabled, checking indicator visibility');
@@ -144,6 +165,12 @@ class AdChecker {
         this.waitForPairIndexing(currentPairAddress);
       }
     }
+    
+    // Restart Twitter info extraction if extension was re-enabled
+    if (!this.twitterObserver) {
+      console.log('Restarting Twitter info extraction');
+      this.initTwitterInfoExtraction();
+    }
   }
   
   formatStatusForDisplay(status) {
@@ -167,6 +194,11 @@ class AdChecker {
     
     this.checkPage();
     this.observeNavigation();
+    
+    // Only initialize Twitter info extraction if enabled
+    if (this.settings.showTwitterInfo) {
+      this.initTwitterInfoExtraction();
+    }
   }
 
   hideIndicator() {
@@ -298,6 +330,13 @@ class AdChecker {
       // Show indicator anyway to let user know extension is working
       this.showIndicator('READY', 'ready');
     }
+    
+    // Always try to extract Twitter info after checking page if enabled
+    if (this.settings.extensionEnabled && this.settings.showTwitterInfo) {
+      setTimeout(() => {
+        this.extractAndInjectTwitterInfo();
+      }, 1000); // Small delay to ensure page content is fully loaded
+    }
   }
 
   startMonitoring() {
@@ -332,6 +371,35 @@ class AdChecker {
       this.currentPairBeingIndexed = null;
       console.log('Stopped indexing check');
     }
+  }
+
+  stopTwitterInfoExtraction() {
+    if (this.twitterObserver) {
+      this.twitterObserver.disconnect();
+      this.twitterObserver = null;
+      console.log('Stopped Twitter info extraction');
+    }
+    
+    if (this.twitterUpdateTimeout) {
+      clearTimeout(this.twitterUpdateTimeout);
+      this.twitterUpdateTimeout = null;
+    }
+    
+    // Clean up existing Twitter info elements
+    this.cleanupTwitterInfoElements();
+  }
+
+  cleanupTwitterInfoElements() {
+    const existingElements = document.querySelectorAll('.dex-twitter-info');
+    existingElements.forEach(element => {
+      element.remove();
+    });
+    
+    // Remove processed markers
+    const processedRows = document.querySelectorAll('[data-twitter-processed]');
+    processedRows.forEach(row => row.removeAttribute('data-twitter-processed'));
+    
+    console.log(`Cleaned up ${existingElements.length} Twitter info elements and ${processedRows.length} processed markers`);
   }
 
   async checkAndUpdateStatus() {
@@ -738,6 +806,11 @@ class AdChecker {
       // Re-run the page check logic
       await this.checkPage();
       
+      // Refresh Twitter info if enabled
+      if (this.settings.showTwitterInfo) {
+        this.extractAndInjectTwitterInfo();
+      }
+      
       console.log('Manual update check completed');
 
     } catch (error) {
@@ -748,6 +821,215 @@ class AdChecker {
         this.indicator.textContent = originalText;
         this.indicator.className = originalStatus;
       }
+    }
+  }
+
+  // Twitter username extraction and injection functionality
+  initTwitterInfoExtraction() {
+    // Initialize Twitter info on page load
+    this.extractAndInjectTwitterInfo();
+    
+    // Set up observer for dynamic content changes
+    this.observeContentChanges();
+  }
+
+  observeContentChanges() {
+    // Watch for dynamic content updates on axiom.trade pulse page
+    const targetNode = document.body;
+    const config = { 
+      childList: true, 
+      subtree: true,
+      attributes: false
+    };
+
+    this.twitterObserver = new MutationObserver((mutations) => {
+      let shouldUpdate = false;
+      
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              // Check if it's a pulse row or contains pulse content
+              if (node.querySelector && (
+                  node.querySelector('.group\\/pulseRow') ||
+                  node.classList?.contains('group/pulseRow') ||
+                  node.closest?.('.group\\/pulseRow')
+                )) {
+                shouldUpdate = true;
+              }
+            }
+          });
+        }
+      });
+
+      if (shouldUpdate) {
+        // Debounce updates
+        clearTimeout(this.twitterUpdateTimeout);
+        this.twitterUpdateTimeout = setTimeout(() => {
+          this.extractAndInjectTwitterInfo();
+        }, 500);
+      }
+    });
+
+    this.twitterObserver.observe(targetNode, config);
+  }
+
+  extractAndInjectTwitterInfo() {
+    try {
+      console.log('Extracting and injecting Twitter info...');
+      
+      // Only process axiom.trade pulse pages
+      if (!window.location.href.includes('axiom.trade') || !window.location.href.includes('pulse')) {
+        console.log('Not on axiom.trade pulse page, skipping Twitter info extraction');
+        return;
+      }
+
+      // Find all pulse rows (token entries)
+      const pulseRows = document.querySelectorAll('.group\\/pulseRow, [class*="pulseRow"]');
+      console.log(`Found ${pulseRows.length} pulse rows`);
+
+      pulseRows.forEach((row, index) => {
+        this.processTokenRowForTwitterInfo(row, index);
+      });
+
+    } catch (error) {
+      console.error('Error extracting Twitter info:', error);
+    }
+  }
+
+  processTokenRowForTwitterInfo(row, index) {
+    try {
+      // Skip if we've already processed this row
+      if (row.hasAttribute('data-twitter-processed')) {
+        return;
+      }
+
+      console.log(`Processing token row ${index} for Twitter info`);
+
+      // Find Twitter username from X.com links in this row
+      const twitterUsername = this.extractTwitterUsernameFromRow(row);
+      
+      if (twitterUsername) {
+        console.log(`Found Twitter username: @${twitterUsername} for row ${index}`);
+        this.injectTwitterInfoElement(row, twitterUsername);
+      } else {
+        console.log(`No Twitter username found for row ${index}`);
+      }
+
+      // Mark as processed to avoid reprocessing
+      row.setAttribute('data-twitter-processed', 'true');
+
+    } catch (error) {
+      console.error(`Error processing token row ${index}:`, error);
+    }
+  }
+
+  extractTwitterUsernameFromRow(row) {
+    // Look for X.com/Twitter links in this specific row
+    const twitterLinks = row.querySelectorAll('a[href*="x.com"], a[href*="twitter.com"]');
+    
+    for (const link of twitterLinks) {
+      const href = link.href;
+      console.log('Checking Twitter link:', href);
+      
+      // Skip search links like x.com/search?q=...
+      if (href.includes('/search?q=')) {
+        continue;
+      }
+      
+      // Extract username from various Twitter URL formats
+      const usernameMatch = href.match(/(?:x\.com|twitter\.com)\/(?:@)?([a-zA-Z0-9_]+)(?:\/|$|\?)/);
+      if (usernameMatch && usernameMatch[1]) {
+        const username = usernameMatch[1];
+        
+        // Filter out common non-username paths
+        const excludedPaths = ['status', 'intent', 'search', 'i', 'home', 'explore', 'notifications', 'messages', 'bookmarks', 'lists', 'profile', 'more', 'compose', 'hashtag'];
+        if (!excludedPaths.includes(username.toLowerCase())) {
+          return username;
+        }
+      }
+      
+      // Also check for status links like x.com/username/status/...
+      const statusMatch = href.match(/(?:x\.com|twitter\.com)\/([a-zA-Z0-9_]+)\/status\/\d+/);
+      if (statusMatch && statusMatch[1]) {
+        return statusMatch[1];
+      }
+    }
+    
+    return null;
+  }
+
+  injectTwitterInfoElement(row, username) {
+    try {
+      // Check if Twitter info already exists for this row
+      const existingTwitterInfo = row.querySelector('.dex-twitter-info');
+      if (existingTwitterInfo) {
+        console.log('Twitter info already exists, updating...');
+        const usernameSpan = existingTwitterInfo.querySelector('.username-display');
+        if (usernameSpan) {
+          usernameSpan.textContent = `@${username}`;
+        }
+        return;
+      }
+
+      // Find the row containing timing and social media icons
+      // Look for the green timing text first, then find its parent row
+      const timingElement = row.querySelector('span[class*="text-primaryGreen"]');
+      let targetRow = null;
+      
+      if (timingElement) {
+        // Find the flex row that contains the timing element
+        targetRow = timingElement.closest('div.flex.flex-row[class*="gap-"][class*="justify-start"][class*="items-center"]');
+        console.log('Found timing row for Twitter injection');
+      }
+      
+      if (!targetRow) {
+        console.log('Could not find timing row, trying alternative approach...');
+        
+        // Alternative approach: look for social icons container
+        targetRow = row.querySelector('div[class*="flex-shrink-0"][class*="gap-"][class*="justify-start"][class*="items-center"]');
+        
+        if (!targetRow) {
+          console.log('Could not find any suitable row for Twitter injection');
+          return;
+        } else {
+          console.log('Using alternative social icons row for Twitter injection');
+        }
+      }
+      
+      console.log(`Injecting Twitter info for @${username}`);
+
+      // Create the Twitter info element to position in the natural gap
+      const twitterInfo = document.createElement('div');
+      twitterInfo.className = 'dex-twitter-info';
+      
+      // Add X logo icon (outline version)
+      const twitterIcon = document.createElement('i');
+      twitterIcon.className = 'ri-twitter-x-line';
+      
+      // Add username
+      const usernameSpan = document.createElement('span');
+      usernameSpan.className = 'username-display';
+      usernameSpan.textContent = `@${username}`;
+      
+      twitterInfo.appendChild(twitterIcon);
+      twitterInfo.appendChild(usernameSpan);
+      
+      // Add click handler to open Twitter profile
+      twitterInfo.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(`https://x.com/${username}`, '_blank', 'noopener,noreferrer');
+      });
+
+      // Insert the Twitter info directly after the social media row
+      // The CSS will handle positioning it in the natural gap
+      targetRow.insertAdjacentElement('afterend', twitterInfo);
+
+      console.log(`Successfully injected Twitter info for @${username}`);
+
+    } catch (error) {
+      console.error('Error injecting Twitter info element:', error);
     }
   }
 }

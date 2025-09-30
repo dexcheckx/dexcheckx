@@ -90,3 +90,49 @@
 }
 
 /* Removed pulsing indicator - cleaner look */
+
+/* Twitter indicator styling for Axiom pulse page - fits in natural gap */
+.dex-twitter-info {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+  border: 1px solid rgba(59, 130, 246, 0.15) !important;
+  color: rgb(96, 165, 250) !important;
+  border-radius: 4px !important;
+  padding: 3px 8px !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.12s ease !important;
+  white-space: nowrap !important;
+  line-height: 1.1 !important;
+  height: 18px !important;
+  width: fit-content !important;
+  /* Position to use natural gap without adding extra space */
+  position: relative !important;
+  top: -2px !important; /* Slightly overlap to use existing gap */
+  margin-bottom: -18px !important; /* Negative margin to not push content down */
+}
+
+.dex-twitter-info:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: rgb(147, 197, 253) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+.dex-twitter-info i {
+  color: rgb(96, 165, 250) !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+  font-weight: 300 !important; /* Lighter weight for outline appearance */
+  -webkit-font-smoothing: antialiased !important;
+}
+
+.dex-twitter-info .username-display {
+  color: rgb(96, 165, 250) !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  /* No max-width - let username display fully */
+}
