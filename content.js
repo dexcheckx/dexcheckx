@@ -9,19 +9,183 @@ class AdChecker {
     this.currentTokenAddress = null;
     this.checkInterval = null;
     this.indexingInterval = null; // For waiting for new pairs to be indexed
+    this.currentStatus = 'ready';
+    this.currentPairBeingIndexed = null; // Track pair being indexed
+    
+    // Settings with defaults
+    this.settings = {
+      extensionEnabled: true,
+      showIndicator: true,
+      monitorInterval: 5,
+      indexingInterval: 10
+    };
+    
     this.init();
   }
 
-  init() {
+  async init() {
+    // Load settings first
+    await this.loadSettings();
+    
+    // Setup message listener for popup communication
+    this.setupMessageListener();
+    
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
-        this.checkPage();
-        this.observeNavigation();
+        this.startExtension();
       });
     } else {
-      this.checkPage();
-      this.observeNavigation();
+      this.startExtension();
+    }
+  }
+
+  async loadSettings() {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        const result = await chrome.storage.sync.get(this.settings);
+        this.settings = { ...this.settings, ...result };
+        console.log('Loaded settings:', this.settings);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  }
+
+  setupMessageListener() {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        this.handleMessage(request, sender, sendResponse);
+        return true; // Keep the message channel open for async responses
+      });
+    }
+  }
+
+  async handleMessage(request, sender, sendResponse) {
+    try {
+      console.log('Content script received message:', request);
+      
+      switch (request.action) {
+        case 'settingsChanged':
+          console.log('Updating settings from:', this.settings, 'to:', request);
+          this.settings = { ...this.settings, ...request };
+          delete this.settings.action; // Remove action property
+          console.log('New settings:', this.settings);
+          await this.onSettingsChanged();
+          sendResponse({ success: true });
+          break;
+          
+        case 'getStatus':
+          sendResponse({
+            status: this.currentStatus,
+            tokenAddress: this.currentTokenAddress,
+            settings: this.settings
+          });
+          break;
+          
+        case 'refreshStatus':
+          await this.performManualUpdate();
+          sendResponse({ success: true });
+          break;
+          
+        case 'resetPosition':
+          this.resetIndicatorPosition();
+          sendResponse({ success: true });
+          break;
+          
+        default:
+          sendResponse({ error: 'Unknown action' });
+      }
+    } catch (error) {
+      console.error('Error handling message:', error);
+      sendResponse({ error: error.message });
+    }
+  }
+
+  async onSettingsChanged() {
+    console.log('Settings changed:', this.settings);
+    
+    // Handle extension enabled/disabled
+    if (!this.settings.extensionEnabled) {
+      console.log('Extension disabled, stopping all monitoring');
+      this.stopMonitoring();
+      this.stopIndexingCheck();
+      if (this.indicator) {
+        this.hideIndicator();
+      }
+      return;
+    }
+    
+    console.log('Extension enabled, checking indicator visibility');
+    
+    // Handle indicator visibility - but always update current status
+    if (!this.settings.showIndicator && this.indicator) {
+      console.log('Hiding indicator but keeping status tracking');
+      this.hideIndicator();
+    } else if (this.settings.showIndicator && !this.indicator && this.currentStatus) {
+      console.log('Showing indicator with current status:', this.currentStatus);
+      // Re-show indicator with current status
+      this.showIndicator(this.formatStatusForDisplay(this.currentStatus), this.currentStatus);
+    }
+    
+    // Restart monitoring with new intervals if currently monitoring
+    if (this.checkInterval) {
+      console.log('Restarting monitoring with new interval:', this.settings.monitorInterval);
+      this.stopMonitoring();
+      this.startMonitoring();
+    }
+    
+    // Restart indexing check with new interval if currently checking
+    if (this.indexingInterval) {
+      console.log('Restarting indexing check with new interval:', this.settings.indexingInterval);
+      const currentPairAddress = this.currentPairBeingIndexed; // We'll need to track this
+      this.stopIndexingCheck();
+      if (currentPairAddress) {
+        this.waitForPairIndexing(currentPairAddress);
+      }
+    }
+  }
+  
+  formatStatusForDisplay(status) {
+    const statusMap = {
+      'paid': 'PAID',
+      'unpaid': 'UNPAID',
+      'processing': 'PROCESSING', 
+      'ready': 'READY',
+      'indexing': 'INDEXING',
+      'updating': 'UPDATING'
+    };
+    
+    return statusMap[status] || status.toUpperCase();
+  }
+
+  startExtension() {
+    if (!this.settings.extensionEnabled) {
+      console.log('Extension is disabled');
+      return;
+    }
+    
+    this.checkPage();
+    this.observeNavigation();
+  }
+
+  hideIndicator() {
+    if (this.indicator) {
+      this.indicator.remove();
+      this.indicator = null;
+    }
+  }
+
+  resetIndicatorPosition() {
+    try {
+      localStorage.removeItem('dexIndicatorPosition');
+      if (this.indicator) {
+        // Reset to default position
+        this.restorePosition();
+      }
+      console.log('Indicator position reset');
+    } catch (error) {
+      console.error('Failed to reset indicator position:', error);
     }
   }
 
@@ -141,14 +305,16 @@ class AdChecker {
       clearInterval(this.checkInterval);
     }
     
+    const intervalMs = (this.settings.monitorInterval || 5) * 1000;
+    
     this.checkInterval = setInterval(() => {
       if (this.currentTokenAddress) {
         console.log(`Checking token advertising status: ${this.currentTokenAddress}`);
         this.checkAndUpdateStatus();
       }
-    }, 5000); // Check every 5 seconds
+    }, intervalMs);
     
-    console.log('Started monitoring - checking every 5 seconds (will stop once paid/processing)');
+    console.log(`Started monitoring - checking every ${this.settings.monitorInterval} seconds (will stop once paid/processing)`);
   }
 
   stopMonitoring() {
@@ -163,6 +329,7 @@ class AdChecker {
     if (this.indexingInterval) {
       clearInterval(this.indexingInterval);
       this.indexingInterval = null;
+      this.currentPairBeingIndexed = null;
       console.log('Stopped indexing check');
     }
   }
@@ -307,11 +474,15 @@ class AdChecker {
 
   waitForPairIndexing(pairAddress) {
     console.log(`Starting indexing check for pair: ${pairAddress}`);
+    this.currentPairBeingIndexed = pairAddress; // Track current pair
     this.showIndicator('INDEXING', 'indexing');
     
-    // Check every 10 seconds for up to 5 minutes
+    // Use settings interval, default to 10 seconds
+    const intervalSec = this.settings.indexingInterval || 10;
+    const intervalMs = intervalSec * 1000;
+    const maxAttempts = Math.ceil(300 / intervalSec); // 5 minutes worth of attempts
+    
     let attempts = 0;
-    const maxAttempts = 30; // 5 minutes
     
     this.indexingInterval = setInterval(async () => {
       attempts++;
@@ -322,6 +493,7 @@ class AdChecker {
         
         if (tokenResult.tokenAddress && !tokenResult.needsIndexing) {
           console.log(`Pair ${pairAddress} is now indexed! Token: ${tokenResult.tokenAddress}`);
+          this.currentPairBeingIndexed = null;
           this.stopIndexingCheck();
           
           // Now check the token for advertising
@@ -345,6 +517,7 @@ class AdChecker {
         
         if (attempts >= maxAttempts) {
           console.log(`Gave up waiting for pair ${pairAddress} to be indexed after ${maxAttempts} attempts`);
+          this.currentPairBeingIndexed = null;
           this.stopIndexingCheck();
           this.showIndicator('READY', 'ready');
         }
@@ -352,7 +525,7 @@ class AdChecker {
       } catch (error) {
         console.error('Error during indexing check:', error);
       }
-    }, 10000); // Check every 10 seconds
+    }, intervalMs); // Check based on settings
   }
 
   async checkTokenAdvertising(tokenAddress) {
@@ -387,6 +560,17 @@ class AdChecker {
   }
 
   showIndicator(text, status) {
+    // Update current status for popup communication
+    this.currentStatus = status;
+    
+    // Don't show indicator if disabled or extension is disabled
+    if (!this.settings.showIndicator || !this.settings.extensionEnabled) {
+      if (this.indicator) {
+        this.hideIndicator();
+      }
+      return;
+    }
+
     if (this.indicator) {
       this.indicator.textContent = text;
       this.indicator.className = `dex-indicator ${status}`;

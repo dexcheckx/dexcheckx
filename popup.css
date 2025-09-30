@@ -1,0 +1,352 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #ffffff;
+  background: #18181b;
+  width: 320px;
+  min-height: 400px;
+}
+
+/* Container */
+.popup-container {
+  padding: 0;
+  background: #18181b;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 20px 20px 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, #18181b 0%, #1c1c20 100%);
+}
+
+.logo {
+  margin-right: 12px;
+}
+
+.logo img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.title h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.title p {
+  font-size: 12px;
+  color: #a1a1aa;
+  font-weight: 400;
+}
+
+/* Status Section */
+.status-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.status-item:last-child {
+  margin-bottom: 0;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.status-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.status-value.inactive {
+  color: #ef4444;
+}
+
+.status-value.none {
+  color: #a1a1aa;
+}
+
+/* Settings Section */
+.settings-section {
+  padding: 20px;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.setting-description {
+  font-size: 12px;
+  color: #a1a1aa;
+  line-height: 1.4;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #27272a;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  top: 2px;
+  background-color: #a1a1aa;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+  background-color: #ffffff;
+}
+
+/* Number Input */
+.setting-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.setting-input input[type="number"] {
+  width: 60px;
+  padding: 8px 24px 8px 12px;
+  background: #27272a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.setting-input input[type="number"]:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.input-suffix {
+  position: absolute;
+  right: 8px;
+  font-size: 11px;
+  color: #a1a1aa;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+/* Actions Section */
+.actions-section {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 12px;
+}
+
+.action-button {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+}
+
+.action-button.primary {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.action-button.primary:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.action-button.secondary {
+  background: #27272a;
+  color: #a1a1aa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-button.secondary:hover {
+  background: #3f3f46;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.action-button:active {
+  transform: translateY(0);
+}
+
+.button-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Footer */
+.footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.version {
+  font-size: 11px;
+  color: #71717a;
+  font-weight: 500;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.links a {
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.links a:hover {
+  color: #10b981;
+}
+
+.separator {
+  color: #71717a;
+  font-size: 10px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Remove spinner arrows from number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Animation for status changes */
+.status-value {
+  transition: color 0.3s ease;
+}
+
+/* Pulse animation for active status */
+@keyframes pulse-green {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.status-value.active {
+  animation: pulse-green 2s ease-in-out infinite;
+}

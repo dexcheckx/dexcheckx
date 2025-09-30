@@ -8,8 +8,13 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DexCheckX Settings"
+  },
   "permissions": [
-    "storage"
+    "storage",
+    "activeTab"
   ],
   "host_permissions": [
     "https://api.dexscreener.com/*"
